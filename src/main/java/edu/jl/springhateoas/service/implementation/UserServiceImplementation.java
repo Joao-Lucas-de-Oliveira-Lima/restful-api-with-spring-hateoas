@@ -15,12 +15,14 @@ import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
@@ -38,81 +40,92 @@ public class UserServiceImplementation implements UserService {
     }
 
     public UserResponseDto findById(UUID id, Boolean hateoasEnabled) {
-        UserEntity userFound = userRepository.findById(id)
+        UserEntity foundUser = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " was not found!"));
-        UserResponseDto userFoundAsResponseDto = mapper.convertObject(userFound, UserResponseDto.class);
+        UserResponseDto userResponse = mapper.convertObject(foundUser, UserResponseDto.class);
         if (hateoasEnabled) {
-            applyLinks(userFoundAsResponseDto);
+            applyLinks(userResponse);
         }
-        return userFoundAsResponseDto;
+        return userResponse;
     }
 
     @Override
     public UserResponseDto save(UserRequestDto userRequestDto, Boolean hateoasEnabled) {
-        UserEntity userSaved = userRepository.save(mapper.convertObject(userRequestDto, UserEntity.class));
-        UserResponseDto userSavedAsResponseDto = mapper.convertObject(userSaved, UserResponseDto.class);
+        UserEntity savedUser = userRepository.save(mapper.convertObject(userRequestDto, UserEntity.class));
+        UserResponseDto savedUserResponse = mapper.convertObject(savedUser, UserResponseDto.class);
         if (hateoasEnabled) {
-            applyLinks(userSavedAsResponseDto);
+            applyLinks(savedUserResponse);
         }
-        return userSavedAsResponseDto;
+        return savedUserResponse;
     }
 
     @Override
     public CollectionModel<UserResponseDto> findAll(Boolean hateoasEnabled) {
-        List<UserEntity> usersFound = userRepository.findAll();
-        List<UserResponseDto> responseDtoList;
+        List<UserEntity> allUsers = userRepository.findAll();
+        List<UserResponseDto> userResponses;
         if (!hateoasEnabled) {
-            responseDtoList = mapper.convertList(usersFound, UserResponseDto.class);
-            return CollectionModel.of(responseDtoList);
+            userResponses = mapper.convertList(allUsers, UserResponseDto.class);
+            return CollectionModel.of(userResponses);
         }
-        responseDtoList = usersFound.stream().map(user -> mapper.convertObject(user, UserResponseDto.class)).map(this::applyLinks).toList();
+        userResponses = allUsers.stream()
+                .map(user -> mapper.convertObject(user, UserResponseDto.class))
+                .map(this::applyLinks)
+                .toList();
         return CollectionModel.of(
-                responseDtoList,
+                userResponses,
                 linkTo(methodOn(UserController.class).findAll(true)).withSelfRel()
         );
     }
 
     @Override
     public PagedModel<UserResponseDto> findByNameContainingIgnoreCase(String name, Boolean hateoasEnabled, Pageable pageable) {
-        Page<UserEntity> userEntityPage = userRepository.findByNameContainingIgnoreCase(name, pageable);
-        Page<UserResponseDto> content;
+        Page<UserEntity> paginatedUsers = userRepository.findByNameContainingIgnoreCase(name, pageable);
+        Page<UserResponseDto> paginatedUserResponses;
         if (hateoasEnabled) {
-            content = userEntityPage.map(userEntity -> mapper.convertObject(userEntity, UserResponseDto.class)).map(this::applyLinks);
-            return applyPageLinks(content);
+            paginatedUserResponses = paginatedUsers
+                    .map(userEntity -> mapper.convertObject(userEntity, UserResponseDto.class))
+                    .map(this::applyLinks);
+            return applyPageLinks(paginatedUserResponses);
         }
-        content = userEntityPage.map(userEntity -> mapper.convertObject(userEntity, UserResponseDto.class));
+        paginatedUserResponses = paginatedUsers.map(userEntity -> mapper.convertObject(userEntity, UserResponseDto.class));
         return PagedModel.of(
-                content.getContent(),
-                new PagedModel.PageMetadata(content.getSize(), content.getNumber(), content.getTotalElements(), content.getTotalPages())
+                paginatedUserResponses.getContent(),
+                new PagedModel.PageMetadata(
+                        paginatedUserResponses.getSize(),
+                        paginatedUserResponses.getNumber(),
+                        paginatedUserResponses.getTotalElements(),
+                        paginatedUserResponses.getTotalPages()
+                )
         );
     }
 
     @Override
-    public UserResponseDto update(UUID id, UserRequestDto userUpdate, Boolean hateoasEnabled) throws ResourceNotFoundException {
-        UserEntity userFound = userRepository.findById(id)
+    @Transactional
+    public UserResponseDto update(UUID id, UserRequestDto userUpdate, Boolean hateoasEnabled) {
+        UserEntity foundUser = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " was not found!"));
-        mapper.copyProperties(userUpdate, userFound);
-        UserEntity updatedUser = userRepository.save(userFound);
-        UserResponseDto updatedUserAsResponseDto = mapper.convertObject(updatedUser, UserResponseDto.class);
+        mapper.copyProperties(userUpdate, foundUser);
+        UserEntity updatedUser = userRepository.save(foundUser);
+        UserResponseDto updatedUserResponse = mapper.convertObject(updatedUser, UserResponseDto.class);
         if (hateoasEnabled) {
-            applyLinks(updatedUserAsResponseDto);
+            applyLinks(updatedUserResponse);
         }
-        return updatedUserAsResponseDto;
+        return updatedUserResponse;
     }
 
     @Override
     public void delete(UUID id) {
-        UserEntity userFound = userRepository.findById(id)
+        UserEntity foundUser = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " was not found!"));
-        userRepository.delete(userFound);
+        userRepository.delete(foundUser);
     }
 
     private UserResponseDto applyLinks(UserResponseDto userResponseDto) {
         try {
             userResponseDto.add(linkTo(methodOn(UserController.class).findById(userResponseDto.getId(), true)).withSelfRel());
-            userResponseDto.add(linkTo(methodOn(UserController.class).save(new UserRequestDto("John Doe", 25), true, new BeanPropertyBindingResult(userResponseDto, "UserResponseDto"))).withRel("create"));
+            userResponseDto.add(linkTo(methodOn(UserController.class).save(new UserRequestDto("John Doe", 25), true)).withRel("create"));
             userResponseDto.add(linkTo(methodOn(UserController.class).delete(userResponseDto.getId())).withRel("delete"));
-            userResponseDto.add(linkTo(methodOn(UserController.class).update(UUID.randomUUID(), new UserRequestDto("John Doe", 25), true, new BeanPropertyBindingResult(userResponseDto, "UserResponseDto"))).withRel("update"));
+            userResponseDto.add(linkTo(methodOn(UserController.class).update(userResponseDto.getId(), new UserRequestDto("John Doe", 25), true)).withRel("update"));
             return userResponseDto;
         } catch (Exception exception) {
             throw new RuntimeException("Links could not be added to object " + userResponseDto.getClass().getName() + "!");
@@ -122,38 +135,45 @@ public class UserServiceImplementation implements UserService {
 
     private PagedModel<UserResponseDto> applyPageLinks(Page<UserResponseDto> page) {
         int size = page.getSize(), number = page.getNumber();
-        long totalElements = page.getTotalElements(), totalPages = page.getTotalPages();
+        long totalElements = page.getTotalElements();
         List<Link> links = new ArrayList<>();
-        String uri = ServletUriComponentsBuilder.fromCurrentRequest().toUriString();
-        // self
-        links.add(Link.of(uri).withSelfRel());
-        // first
-        String uriFirstPage = uri.replaceAll("\\bpage=" + number + "\\b|\\bpage\\b", "page=0");
-        links.add(Link.of(uriFirstPage).withRel("first"));
-        // last
-        String uriLastPage;
-        if (totalPages == 0) {
-            uriLastPage = uri.replaceAll("\\bpage=" + number + "\\b|\\bpage\\b", "page=" + (totalPages));
-        } else {
-            uriLastPage = uri.replaceAll("\\bpage=" + number + "\\b|\\bpage\\b", "page=" + (totalPages - 1));
-        }
-        links.add(Link.of(uriLastPage).withRel("last"));
-        // next
-        String uriNextPage;
-        if (totalPages > 1 && number < totalPages - 1) {
-            uriNextPage = uri.replaceAll("\\bpage=" + number + "\\b|\\bpage\\b", "page=" + (number + 1));
-            links.add(Link.of(uriNextPage).withRel("next"));
-        }
-        // prev
-        String uriPrevPage;
-        if (number > 1) {
-            uriPrevPage = uri.replaceAll("\\bpage=" + number + "\\b|\\bpage\\b", "page=" + (number + -1));
-            links.add(Link.of(uriPrevPage).withRel("prev"));
+        UriComponentsBuilder uriBuilder = ServletUriComponentsBuilder.fromCurrentRequest();
 
+        // Método auxiliar para garantir a ordem dos parâmetros
+        Function<Integer, String> buildOrderedUri = (pageNumber) -> {
+            UriComponentsBuilder adjustedUriBuilder = uriBuilder.cloneBuilder()
+                    .replaceQueryParam("name", uriBuilder.build().getQueryParams().getFirst("name")) // Preserva 'name'
+                    .replaceQueryParam("size", size) // Define 'size'
+                    .replaceQueryParam("page", pageNumber) // Define 'page'
+                    .replaceQueryParam("sort", uriBuilder.build().getQueryParams().getFirst("sort")) // Preserva 'sort'
+                    .replaceQueryParam("hateoas", "true"); // Garante 'hateoas=true'
+            return adjustedUriBuilder.toUriString();
+        };
+
+        // self
+        links.add(Link.of(buildOrderedUri.apply(number)).withSelfRel());
+
+        // first
+        links.add(Link.of(buildOrderedUri.apply(0)).withRel("first"));
+
+        // last
+        int lastPage = (int) Math.ceil((double) totalElements / size) - 1;
+        lastPage = Math.max(lastPage, 0);
+        links.add(Link.of(buildOrderedUri.apply(lastPage)).withRel("last"));
+
+        // next
+        if (number < lastPage) {
+            links.add(Link.of(buildOrderedUri.apply(number + 1)).withRel("next"));
         }
+
+        // prev
+        if (number > 0) {
+            links.add(Link.of(buildOrderedUri.apply(number - 1)).withRel("prev"));
+        }
+
         return PagedModel.of(
                 page.getContent(),
-                new PagedModel.PageMetadata(size, number, totalElements, totalPages),
+                new PagedModel.PageMetadata(size, number, totalElements, lastPage + 1),
                 links
         );
     }

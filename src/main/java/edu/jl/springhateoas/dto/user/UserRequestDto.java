@@ -3,6 +3,7 @@ package edu.jl.springhateoas.dto.user;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -13,7 +14,7 @@ public class UserRequestDto implements Serializable {
     private static final long serialVersionUID = 1L;
     @NotBlank
     private String name;
-    @NotNull @Min(10)
+    @NotNull @Min(15)
     private Integer age;
 
     public UserRequestDto() {

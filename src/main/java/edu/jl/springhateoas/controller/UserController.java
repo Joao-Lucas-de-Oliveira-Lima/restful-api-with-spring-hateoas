@@ -5,7 +5,6 @@ import edu.jl.springhateoas.dto.user.UserResponseDto;
 import edu.jl.springhateoas.service.UserService;
 import io.swagger.v3.oas.annotations.Parameter;
 import jakarta.validation.Valid;
-import org.apache.coyote.BadRequestException;
 import org.springdoc.core.converters.models.PageableAsQueryParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -15,13 +14,12 @@ import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/users/v1")
+@RequestMapping("/api/v1/users")
 public class UserController {
     private final UserService userService;
 
@@ -66,25 +64,17 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserResponseDto> save(
             @Valid @RequestBody UserRequestDto userRequestDto,
-            @RequestParam(name = "hateoas", defaultValue = "false") Boolean hateoasEnabled,
-            BindingResult requestValidationErrors) throws BadRequestException{
-        if(requestValidationErrors.hasErrors()){
-            throw new BadRequestException("Data not provided or incorrect!");
-        }
+            @RequestParam(name = "hateoas", defaultValue = "false") Boolean hateoasEnabled) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(userService.save(userRequestDto, hateoasEnabled));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}")
     public ResponseEntity<UserResponseDto> update(
             @PathVariable(name = "id") UUID id,
-            @Valid @RequestBody UserRequestDto userUpdate,
-            @RequestParam(name = "hateoas", defaultValue = "false") Boolean hateoasEnabled,
-            BindingResult requestValidationErrors) throws BadRequestException{
-        if(requestValidationErrors.hasErrors()){
-            throw new BadRequestException("Data not provided or incorrect!");
-        }
+            @RequestBody @Valid UserRequestDto userUpdate,
+            @RequestParam(name = "hateoas", defaultValue = "false") Boolean hateoasEnabled) {
         return ResponseEntity.ok(userService.update(id, userUpdate, hateoasEnabled));
     }
 
