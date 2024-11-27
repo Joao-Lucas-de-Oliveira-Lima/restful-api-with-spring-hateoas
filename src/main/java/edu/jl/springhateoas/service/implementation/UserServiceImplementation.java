@@ -139,14 +139,13 @@ public class UserServiceImplementation implements UserService {
         List<Link> links = new ArrayList<>();
         UriComponentsBuilder uriBuilder = ServletUriComponentsBuilder.fromCurrentRequest();
 
-        // Método auxiliar para garantir a ordem dos parâmetros
         Function<Integer, String> buildOrderedUri = (pageNumber) -> {
             UriComponentsBuilder adjustedUriBuilder = uriBuilder.cloneBuilder()
-                    .replaceQueryParam("name", uriBuilder.build().getQueryParams().getFirst("name")) // Preserva 'name'
-                    .replaceQueryParam("size", size) // Define 'size'
-                    .replaceQueryParam("page", pageNumber) // Define 'page'
-                    .replaceQueryParam("sort", uriBuilder.build().getQueryParams().getFirst("sort")) // Preserva 'sort'
-                    .replaceQueryParam("hateoas", "true"); // Garante 'hateoas=true'
+                    .replaceQueryParam("name", uriBuilder.build().getQueryParams().getFirst("name")) 
+                    .replaceQueryParam("size", size) 
+                    .replaceQueryParam("page", pageNumber) 
+                    .replaceQueryParam("sort", uriBuilder.build().getQueryParams().getFirst("sort"))
+                    .replaceQueryParam("hateoas", "true");
             return adjustedUriBuilder.toUriString();
         };
 
