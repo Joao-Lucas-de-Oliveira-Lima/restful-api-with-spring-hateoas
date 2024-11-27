@@ -12,9 +12,9 @@ JSON responses due to the inclusion of HATEOAS links, which may be unnecessary
 for clients that do not need these links, such as mobile clients. This would result in 
 higher mobile data consumption. To address this, the API uses a boolean query parameter 
 called `hateoas`, which is set to `false` by default. When sent as `true`, the API will 
-return all the links associated with the requested resource. This approach allows the 
-API to remain self-explanatory without burdening clients that do not use this feature.
-
+return all the links associated with the requested resource. This approach allows the API 
+to be self-explanatory for clients that consume links, without burdening those that do not 
+use this feature.
 The API implements HATEOAS with three types of responses:
 - `UserResponseDto` for a single user,
 - `CollectionModel<UserResponseDto>` for a collection of users,
