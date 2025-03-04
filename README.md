@@ -1,6 +1,8 @@
 # RESTful API with Spring HATEOAS
 
-![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white) ![Spring](https://img.shields.io/badge/spring-%236DB33F.svg?style=for-the-badge&logo=spring&logoColor=white) ![Swagger](https://img.shields.io/badge/-Swagger-%23Clojure?style=for-the-badge&logo=swagger&logoColor=white)
+![Java](https://img.shields.io/badge/Java-%23F89820.svg?style=for-the-badge&logo=openjdk&logoColor=white) 
+![Spring](https://img.shields.io/badge/Spring-%238BC34A.svg?style=for-the-badge&logo=spring&logoColor=white) 
+![Swagger](https://img.shields.io/badge/Swagger-%238D6E63.svg?style=for-the-badge&logo=swagger&logoColor=white) 
 
 ## Table of Contents
 
