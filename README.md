@@ -1,108 +1,104 @@
 # RESTful API with Spring HATEOAS
-Implementation of a RESTful API that allows the optional inclusion of HATEOAS links through a query parameter.
+
+![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white) ![Spring](https://img.shields.io/badge/spring-%236DB33F.svg?style=for-the-badge&logo=spring&logoColor=white) ![Swagger](https://img.shields.io/badge/-Swagger-%23Clojure?style=for-the-badge&logo=swagger&logoColor=white)
+
 ## Table of Contents
+
 - [Overview](#overview)
-- [Installation Guide](#installation-guide)
-- [Tests](#tests)
-- [Documentation](#documentation)
+- [Installation](#installation)
+- [Usage](#usage)
+- [API Endpoints](#api-endpoints)
+- [Example Responses](#example-responses)
+- [Testing](#testing)
+- [API Documentation](#api-documentation)
 
 ## Overview
-The goal of this API is to mitigate the issue of significantly larger 
-JSON responses due to the inclusion of HATEOAS links, which may be unnecessary
-for clients that do not need these links, such as mobile clients. This would result in 
-higher mobile data consumption. To address this, the API uses a boolean query parameter 
-called `hateoas`, which is set to `false` by default. When sent as `true`, the API will 
-return all the links associated with the requested resource. This approach allows the API 
-to be self-explanatory for clients that consume links, without burdening those that do not 
-use this feature.
-The API implements HATEOAS with three types of responses:
-- `UserResponseDto` for a single user,
-- `CollectionModel<UserResponseDto>` for a collection of users,
-- `PagedModel<UserResponseDto>` for a paged list of users.
-### Example
-- For the request `GET http://localhost:8080/api/v1/users/:id` without the HATEOAS parameter:
 
-```json
-{
-  "id": "1e1f3e26-9b01-4d7d-a123-123456789001",
-  "name": "Alice",
-  "age": 25
-}
+This API implements Level 3 of the Richardson REST Maturity Model using HATEOAS links. By default, HATEOAS links are disabled but can be enabled via a query parameter (`hateoas=true`).
+
+## Installation
+
+### Prerequisites
+- [Java 21](https://www.oracle.com/java/technologies/downloads/#java21)
+
+### Running the Application
+```bash
+./mvnw spring-boot:run
 ```
-- Enabling HATEOAS with `GET http://localhost:8080/api/v1/users/:id?hateoas=true`:
+The API will be available at `http://localhost:8080/api`.
+
+## Usage
+
+To enable HATEOAS links, append `hateoas=true` as a query parameter.
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|---------|-------------|
+| GET | `/api/v1/users/:id?hateoas=true` | Retrieve a user by ID |
+| GET | `/api/v1/users?hateoas=true` | List all users |
+| GET | `/api/v1/users/paged?hateoas=true` | Get paginated user data |
+
+## Example Responses
+
+### Single User Response
 ```json
 {
   "id": "1e1f3e26-9b01-4d7d-a123-123456789001",
   "name": "Alice",
   "age": 25,
   "_links": {
-    "self": {
-      "href": "http://localhost:8080/api/v1/users/1e1f3e26-9b01-4d7d-a123-123456789001?hateoas=true"
-    },
-    "create": {
-      "href": "http://localhost:8080/api/v1/users?hateoas=true"
-    },
-    "delete": {
-      "href": "http://localhost:8080/api/v1/users/1e1f3e26-9b01-4d7d-a123-123456789001"
-    },
-    "update": {
-      "href": "http://localhost:8080/api/v1/users/1e1f3e26-9b01-4d7d-a123-123456789001?hateoas=true"
-    }
+    "self": { "href": "http://localhost:8080/api/v1/users/1e1f3e26-9b01-4d7d-a123-123456789001?hateoas=true" },
+    "create": { "href": "http://localhost:8080/api/v1/users?hateoas=true" },
+    "delete": { "href": "http://localhost:8080/api/v1/users/1e1f3e26-9b01-4d7d-a123-123456789001" },
+    "update": { "href": "http://localhost:8080/api/v1/users/1e1f3e26-9b01-4d7d-a123-123456789001?hateoas=true" }
   }
 }
 ```
->Note: The links above are just for reference. In a real software environment, 
-> more relevant links tailored to the business rules of the application could be sent 
-> along with the request.
-## Installation Guide
 
-### Prerequisites
-- [Java 21](https://www.oracle.com/br/java/technologies/downloads/#java21)
-- [Apache Maven 3.9.8 or later](https://maven.apache.org/install.html)
+### Paginated Users Response
+```json
+{
+  "_embedded": {
+    "userResponseDtoList": [
+      {
+        "id": "1e1f3e26-9b01-4d7d-a123-123456789001",
+        "name": "Alice",
+        "age": 25,
+        "_links": { /* User-specific links */ }
+      }
+    ]
+  },
+  "_links": {
+    "self": { "href": "http://localhost:8080/api/v1/users/paged?size=20&page=0&hateoas=true" },
+    "first": { "href": "http://localhost:8080/api/v1/users/paged?size=20&page=0&hateoas=true" },
+    "last": { "href": "http://localhost:8080/api/v1/users/paged?size=20&page=0&hateoas=true" }
+  },
+  "page": {
+    "size": 20,
+    "totalElements": 20,
+    "totalPages": 1,
+    "number": 0
+  }
+}
+```
 
-### Running the Application with Maven
+## Testing
 
-1. **Build the Application**
+Run unit and integration tests:
 
-In the project root directory, run the following command to start building the project:
+- **Unit Tests:**
 ```bash
-mvn clean install
+./mvnw test
 ```
-
-2. **Run the Application**
-
-To start the application, use the command:
+- **Integration Tests:**
 ```bash
-mvn spring-boot:run
+./mvnw verify
 ```
 
-## Tests
+## API Documentation
 
-Run the following commands in the terminal, from the application root directory:
+- **Swagger UI:** Access interactive API documentation at [`/swagger-ui/index.html`](http://localhost:8080/swagger-ui/index.html).
+- **OpenAPI Specification (JSON):** Retrieve the API spec at [`/v3/api-docs`](http://localhost:8080/v3/api-docs).
 
-- For unit tests:
-```bash
-mvn test
-```
-- For integration tests:
-```bash
-mvn verify
-```
-
-## Documentation
-
-### API Endpoints Preview
-```text
-GET /api/v1/users/{id} - Retrieve a user by ID.
-GET /api/v1/users - Retrieve a collection of all users.
-GET /api/v1/users/paged - Retrieve a paged list of users containing a case-insensitive name.
-POST /api/v1/users - Create a new user.
-PUT /api/v1/users/{id} - Update an existing user by ID.
-DELETE /api/v1/users/{id} - Delete a user by ID.
-```
-
-### OpenAPI Documentation
-- To view the full API documentation, including endpoints and data schemas, open the Swagger UI at:
-  `/swagger-ui/index.html`
-
-- For API documentation in JSON format suitable for tools like Postman, Insomnia, and other API clients, go to: `/v3/api-docs`.
+---
